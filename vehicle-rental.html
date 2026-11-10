@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wheelhouse – Vehicle Rentals</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#e9eef1;--card:#fff;--ink:#10202b;--mute:#5b6b76;--line:#cfd9df;--plate:#f5b800;--ok:#1d7a4d;--bad:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#0e171d;--card:#16232c;--ink:#e8eef1;--mute:#93a4af;--line:#26363f;--ok:#4cc38a;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Barlow,system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:16px 24px;background:var(--ink);color:#e8eef1}
+.logo{font:700 28px 'Barlow Condensed',Impact,sans-serif;letter-spacing:.5px}
+.logo b{background:var(--plate);color:#10202b;padding:0 8px;border-radius:4px;margin-right:6px}
+nav button{background:none;border:0;color:#9fb1bc;font:600 16px Barlow,sans-serif;padding:8px 14px;cursor:pointer;border-bottom:3px solid transparent}
+nav button.on{color:#fff;border-color:var(--plate)}
+main{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+.bar{display:flex;flex-wrap:wrap;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:20px}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mute);gap:4px;flex:1;min-width:130px}
+input,select{font:16px Barlow,sans-serif;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+:focus-visible{outline:3px solid var(--plate);outline-offset:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.plate{align-self:flex-start;background:var(--plate);color:#10202b;font:700 15px 'Barlow Condensed',Impact,sans-serif;letter-spacing:2px;padding:2px 10px;border:2px solid #10202b;border-radius:5px}
+.card h3{margin:6px 0 0;font:700 24px 'Barlow Condensed',Impact,sans-serif}
+.spec{color:var(--mute);font-size:14px}
+.price{font:700 26px 'Barlow Condensed',Impact,sans-serif;margin-top:auto;padding-top:8px}
+.price small{font:400 14px Barlow,sans-serif;color:var(--mute)}
+.btn{font:600 16px Barlow,sans-serif;padding:10px 14px;border-radius:6px;border:0;background:var(--ink);color:var(--bg);cursor:pointer}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:none;color:var(--bad);border:1px solid var(--bad)}
+.row{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+.empty{color:var(--mute);padding:32px;text-align:center}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:22px;width:min(420px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog form{display:flex;flex-direction:column;gap:12px}
+.sum{background:var(--bg);border-radius:8px;padding:10px 12px;font-size:15px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;display:none}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><b>WH</b>Wheelhouse</div>
+  <nav>
+    <button class="on" data-tab="browse">Browse vehicles</button>
+    <button data-tab="bookings">My bookings</button>
+    <button data-tab="admin">Fleet admin</button>
+  </nav>
+</header>
+
+<main>
+  <section id="browse">
+    <div class="bar">
+      <label>Pickup date<input type="date" id="from"></label>
+      <label>Return date<input type="date" id="to"></label>
+      <label>Type<select id="type"><option value="">All types</option></select></label>
+      <label>Max price per day<input type="number" id="max" min="0" step="100" placeholder="Any"></label>
+      <label>Search<input type="search" id="q" placeholder="Make or model"></label>
+    </div>
+    <div class="grid" id="list"></div>
+  </section>
+
+  <section id="bookings" class="hide"><div id="blist"></div></section>
+
+  <section id="admin" class="hide">
+    <form class="bar" id="addForm">
+      <label>Name<input id="aName" required placeholder="Maruti Swift"></label>
+      <label>Type<select id="aType"></select></label>
+      <label>Price per day<input id="aPrice" type="number" min="1" required></label>
+      <label>Seats<input id="aSeats" type="number" min="1" max="12" value="4"></label>
+      <label>Fuel<select id="aFuel"><option>Petrol</option><option>Diesel</option><option>Electric</option><option>CNG</option></select></label>
+      <button class="btn" style="align-self:flex-end">Add vehicle</button>
+    </form>
+    <div id="fleet"></div>
+  </section>
+</main>
+
+<dialog id="dlg">
+  <form id="bookForm">
+    <h2 id="dTitle" style="margin:0"></h2>
+    <div class="sum" id="dSum"></div>
+    <label>Full name<input id="bName" required></label>
+    <label>Phone<input id="bPhone" type="tel" required pattern="[0-9+ ]{8,15}" title="Enter 8–15 digits"></label>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button type="button" class="btn ghost" id="dCancel">Cancel</button>
+      <button class="btn">Confirm booking</button>
+    </div>
+  </form>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+const CUR = '₹';
+const TYPES = ['Hatchback','Sedan','SUV','Bike','Scooter'];
+const SEED = [
+  {id:1,name:'Maruti Swift',type:'Hatchback',price:1500,seats:5,fuel:'Petrol',plate:'DL 3C AB 2041'},
+  {id:2,name:'Honda City',type:'Sedan',price:2200,seats:5,fuel:'Petrol',plate:'MH 12 KR 4821'},
+  {id:3,name:'Hyundai Creta',type:'SUV',price:2800,seats:5,fuel:'Diesel',plate:'KA 05 MN 7710'},
+  {id:4,name:'Toyota Innova',type:'SUV',price:3500,seats:7,fuel:'Diesel',plate:'TN 09 BX 3382'},
+  {id:5,name:'Tata Nexon EV',type:'SUV',price:2600,seats:5,fuel:'Electric',plate:'GJ 01 EV 9056'},
+  {id:6,name:'Royal Enfield Classic 350',type:'Bike',price:900,seats:2,fuel:'Petrol',plate:'RJ 14 SK 1175'},
+  {id:7,name:'KTM Duke 200',type:'Bike',price:1100,seats:2,fuel:'Petrol',plate:'UP 16 DT 6624'},
+  {id:8,name:'Honda Activa',type:'Scooter',price:450,seats:2,fuel:'Petrol',plate:'HR 26 AC 5003'}
+];
+
+// ---------- storage (falls back to memory if localStorage is blocked) ----------
+const store = {
+  get(k, d){ try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+let vehicles = store.get('wh_vehicles', SEED);
+let bookings = store.get('wh_bookings', []);
+const save = () => { store.set('wh_vehicles', vehicles); store.set('wh_bookings', bookings); };
+
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => CUR + Number(n).toLocaleString('en-IN');
+const iso = d => d.toISOString().slice(0, 10);
+const dayDiff = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+const toast = msg => { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2500); };
+
+// A vehicle is free if no existing booking overlaps [from, to). Same-day handover is allowed.
+const isFree = (vid, from, to) => !bookings.some(b => b.vid === vid && b.from < to && b.to > from);
+
+// ---------- browse ----------
+function renderList(){
+  const from = $('from').value, to = $('to').value, type = $('type').value;
+  const max = Number($('max').value) || Infinity, q = $('q').value.trim().toLowerCase();
+  const days = dayDiff(from, to);
+  if (!(days > 0)) { $('list').innerHTML = '<div class="empty">Return date must be after the pickup date.</div>'; return; }
+
+  const rows = vehicles.filter(v => (!type || v.type === type) && v.price <= max && v.name.toLowerCase().includes(q));
+  $('list').innerHTML = rows.map(v => {
+    const free = isFree(v.id, from, to);
+    return `<article class="card">
+      <span class="plate">${esc(v.plate)}</span>
+      <h3>${esc(v.name)}</h3>
+      <div class="spec">${esc(v.type)} · ${v.seats} seats · ${esc(v.fuel)}</div>
+      <div class="price">${money(v.price)} <small>per day</small></div>
+      <div class="spec">${free ? money(v.price * days) + ' for ' + days + (days > 1 ? ' days' : ' day') : '<span style="color:var(--bad)">Booked for these dates</span>'}</div>
+      <button class="btn" data-book="${v.id}" ${free ? '' : 'disabled'}>Book this vehicle</button>
+    </article>`;
+  }).join('') || '<div class="empty">No vehicles match. Try a higher price or a different type.</div>';
+}
+
+// ---------- booking dialog ----------
+let current = null;
+$('list').addEventListener('click', e => {
+  const id = e.target.dataset.book; if (!id) return;
+  current = vehicles.find(v => v.id == id);
+  const from = $('from').value, to = $('to').value, days = dayDiff(from, to);
+  $('dTitle').textContent = current.name;
+  $('dSum').innerHTML = `${esc(from)} → ${esc(to)} (${days} day${days > 1 ? 's' : ''})<br><b>Total: ${money(current.price * days)}</b>`;
+  $('dlg').showModal();
+});
+$('dCancel').onclick = () => $('dlg').close();
+$('bookForm').onsubmit = e => {
+  e.preventDefault();
+  const from = $('from').value, to = $('to').value;
+  if (!isFree(current.id, from, to)) { toast('Sorry, that vehicle was just booked.'); $('dlg').close(); return renderList(); }
+  bookings.push({
+    id: Date.now(), vid: current.id, from, to,
+    name: $('bName').value.trim(), phone: $('bPhone').value.trim(),
+    total: current.price * dayDiff(from, to)
+  });
+  save(); $('dlg').close(); $('bookForm').reset(); renderList(); renderBookings();
+  toast('Booking confirmed');
+};
+
+// ---------- my bookings ----------
+function renderBookings(){
+  const today = iso(new Date());
+  $('blist').innerHTML = bookings.slice().sort((a, b) => a.from.localeCompare(b.from)).map(b => {
+    const v = vehicles.find(x => x.id === b.vid) || {name: 'Removed vehicle', plate: ''};
+    const past = b.to < today;
+    return `<div class="row">
+      <div><b>${esc(v.name)}</b> <span class="plate" style="font-size:12px">${esc(v.plate)}</span><br>
+        <span class="spec">${esc(b.from)} → ${esc(b.to)} · ${esc(b.name)} · ${esc(b.phone)}</span></div>
+      <div><b>${money(b.total)}</b> ${past ? '<span class="spec">Completed</span>' : `<button class="btn ghost" data-cancel="${b.id}">Cancel</button>`}</div>
+    </div>`;
+  }).join('') || '<div class="empty">No bookings yet. Pick dates and a vehicle under Browse vehicles.</div>';
+}
+$('blist').addEventListener('click', e => {
+  const id = e.target.dataset.cancel; if (!id) return;
+  bookings = bookings.filter(b => b.id != id); save(); renderBookings(); renderList(); toast('Booking cancelled');
+});
+
+// ---------- fleet admin ----------
+function renderFleet(){
+  $('fleet').innerHTML = vehicles.map(v => `<div class="row">
+    <div><b>${esc(v.name)}</b> <span class="spec">${esc(v.type)} · ${money(v.price)}/day · ${esc(v.plate)}</span></div>
+    <button class="btn ghost" data-del="${v.id}">Remove</button></div>`).join('') || '<div class="empty">Fleet is empty.</div>';
+}
+$('addForm').onsubmit = e => {
+  e.preventDefault();
+  const letters = () => String.fromCharCode(65 + Math.random() * 26 | 0);
+  vehicles.push({
+    id: Date.now(), name: $('aName').value.trim(), type: $('aType').value,
+    price: Number($('aPrice').value), seats: Number($('aSeats').value) || 4, fuel: $('aFuel').value,
+    plate: `XX ${10 + (Math.random() * 89 | 0)} ${letters()}${letters()} ${1000 + (Math.random() * 8999 | 0)}`
+  });
+  save(); $('addForm').reset(); renderFleet(); renderList(); toast('Vehicle added');
+};
+$('fleet').addEventListener('click', e => {
+  const id = e.target.dataset.del; if (!id) return;
+  if (bookings.some(b => b.vid == id)) return toast('Cancel this vehicle’s bookings first.');
+  vehicles = vehicles.filter(v => v.id != id); save(); renderFleet(); renderList();
+});
+
+// ---------- tabs + init ----------
+document.querySelectorAll('nav button').forEach(btn => btn.onclick = () => {
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b === btn));
+  ['browse', 'bookings', 'admin'].forEach(id => $(id).classList.toggle('hide', id !== btn.dataset.tab));
+});
+TYPES.forEach(t => { $('type').add(new Option(t, t)); $('aType').add(new Option(t, t)); });
+const now = new Date(); $('from').min = $('to').min = iso(now);
+$('from').value = iso(now); $('to').value = iso(new Date(now.getTime() + 864e5));
+['from', 'to', 'type', 'max', 'q'].forEach(id => $(id).addEventListener('input', renderList));
+$('from').addEventListener('change', () => { if ($('to').value <= $('from').value) $('to').value = iso(new Date(new Date($('from').value).getTime() + 864e5)); renderList(); });
+renderList(); renderBookings(); renderFleet();
+</script>
+</body>
+</html>
